@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct sysinfo;
 
 // bio.c
 void            binit(void);
@@ -34,6 +35,7 @@ int             fileread(struct file*, uint64, int n);
 int             filestat(struct file*, uint64 addr);
 int             filewrite(struct file*, uint64, int n);
 
+
 // fs.c
 void            fsinit(int);
 int             dirlink(struct inode*, char*, uint);
@@ -53,6 +55,8 @@ int             readi(struct inode*, int, uint64, uint, uint);
 void            stati(struct inode*, struct stat*);
 int             writei(struct inode*, int, uint64, uint, uint);
 void            itrunc(struct inode*);
+// void            flock(struct sysinfo*);
+// void            funlock(struct sysinfo*);
 
 // ramdisk.c
 void            ramdiskinit(void);
@@ -63,6 +67,7 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+uint64          getFreeMemory(void);
 
 // log.c
 void            initlog(int, struct superblock*);
@@ -104,6 +109,8 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
+uint64            getFreeProc(void);
+uint64            getFreefd(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

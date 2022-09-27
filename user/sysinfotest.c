@@ -30,12 +30,14 @@ countfree()
     n += PGSIZE;
   }
   sinfo(&info);
+
   if (info.freemem != 0) {
     printf("FAIL: there is no free mem, but sysinfo.freemem=%d\n",
       info.freemem);
     exit(1);
   }
   sbrk(-((uint64)sbrk(0) - sz0));
+  
   return n;
 }
 
@@ -80,12 +82,15 @@ void
 testcall() {
   struct sysinfo info;
   
+
   if (sysinfo(&info) < 0) {
     printf("FAIL: sysinfo failed\n");
     exit(1);
   }
-
-  if (sysinfo((struct sysinfo *) 0xeaeb0b5b00002f5e) !=  0xffffffffffffffff) {
+  
+  int n = sysinfo((struct sysinfo *) 0xeaeb0b5b00002f5e);
+  if (n !=  0xffffffffffffffff) {
+    printf("ilegal addr %p\n",0xeaeb0b5b00002f5e);
     printf("FAIL: sysinfo succeeded with bad argument\n");
     exit(1);
   }

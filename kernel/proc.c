@@ -12,6 +12,8 @@ struct proc proc[NPROC];
 
 struct proc *initproc;
 
+struct sysinfo *info;
+
 int nextpid = 1;
 struct spinlock pid_lock;
 
@@ -129,6 +131,33 @@ found:
 
   return p;
 }
+
+uint64
+getFreeProc(void) {
+  int nproc = 0;
+  struct proc *p;
+  for(p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if(p->state == UNUSED) {
+      nproc++;
+    }
+    release(&p->lock);
+  }
+  return (uint64)nproc;
+}
+
+uint64
+getFreefd(void) {
+  int freefd = 0;
+  struct proc *p = myproc();
+  for(int i = 0; i < NOFILE; i++) {
+    acquire(&p->lock);
+    if(!p->ofile[i])
+      freefd++;
+    release(&p->lock);
+  }
+  return (uint64)freefd;
+} 
 
 // free a proc structure and the data hanging from it,
 // including user pages.
@@ -274,6 +303,8 @@ fork(void)
     return -1;
   }
   np->sz = p->sz;
+
+  np->mask = p->mask;
 
   np->parent = p;
 

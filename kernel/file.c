@@ -12,6 +12,7 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 struct devsw devsw[NDEV];
 struct {
@@ -179,4 +180,3 @@ filewrite(struct file *f, uint64 addr, int n)
 
   return ret;
 }
-

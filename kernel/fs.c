@@ -20,6 +20,7 @@
 #include "fs.h"
 #include "buf.h"
 #include "file.h"
+#include "sysinfo.h"
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 // there should be one superblock per disk device, but we run with
@@ -321,6 +322,24 @@ iunlock(struct inode *ip)
 
   releasesleep(&ip->lock);
 }
+
+// // lock the given sys_info node
+// void
+// flock(struct sysinfo *si)
+// {
+//   if(si == 0)
+//     panic("flock");
+//   acquiresleep(&si->lock);
+// }
+
+// // unlock the given sys_info node
+// void
+// funlock(struct sysinfo *si)
+// {
+//   if(si == 0 || !holdingsleep(&si->lock)) 
+//     panic("funlock");
+//   releasesleep(&si->lock);
+// }
 
 // Drop a reference to an in-memory inode.
 // If that was the last reference, the inode cache entry can
