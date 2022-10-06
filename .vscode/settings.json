@@ -1,5 +1,24 @@
 {
+    "C_Cpp.errorSquiggles": "Disabled",
     "files.associations": {
-        "user.h": "c"
+        "tidl_alg_int.h": "c",
+        "limits": "c",
+        "*.cjson": "jsonc",
+        "*.wxss": "css",
+        "*.wxs": "javascript",
+        "cmath": "c",
+        "exception": "c",
+        "*.tcc": "c",
+        "type_traits": "c",
+        "typeinfo": "c",
+        "climits": "c",
+        "compare": "c",
+        "concepts": "c",
+        "cstdarg": "c",
+        "cstdint": "c",
+        "cstdio": "c",
+        "cstdlib": "c",
+        "new": "c",
+        "cinttypes": "c"
     }
 }
