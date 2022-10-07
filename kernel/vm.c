@@ -47,6 +47,35 @@ kvminit()
   kvmmap(TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
 }
 
+// create mapping for user page tables for each proc
+void 
+pkvminit(pagetable_t* pagetable)
+{ 
+  *pagetable = (pagetable_t)kalloc();
+  memset(*pagetable, 0, PGSIZE);
+  // uart registers
+  pkvmmap(*pagetable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+
+  // virtio mmio disk interface
+  pkvmmap(*pagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+
+  // CLINT
+  pkvmmap(*pagetable, CLINT, CLINT, 0x10000, PTE_R | PTE_W);
+
+  // PLIC
+  pkvmmap(*pagetable, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+
+  // map kernel text executable and read-only.
+  pkvmmap(*pagetable, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
+
+  // map kernel data and the physical RAM we'll make use of.
+  pkvmmap(*pagetable, (uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);
+
+  // map the trampoline for trap entry/exit to
+  // the highest virtual address in the kernel.
+  pkvmmap(*pagetable, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+}
+
 // Switch h/w page table register to the kernel's page table,
 // and enable paging.
 void
@@ -119,6 +148,14 @@ kvmmap(uint64 va, uint64 pa, uint64 sz, int perm)
 {
   if(mappages(kernel_pagetable, va, sz, pa, perm) != 0)
     panic("kvmmap");
+}
+
+// add a mapping to the proc kernel page table.
+void
+pkvmmap(pagetable_t p, uint64 va, uint64 pa, uint64 sz, int perm)
+{
+  if (mappages(p, va, sz, pa, perm) != 0)
+    panic("proc_vmmap");
 }
 
 // translate a kernel virtual address to
@@ -466,29 +503,17 @@ printinfo(pagetable_t pagetable, int flag)
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
     if(pte & PTE_V){
-      // this PTE points to a lower-level page table.
+      // this PTE valid.
       uint64 child = PTE2PA(pte);
-      switch (flag)
-      {
-      case 0: {
-        printf("..%d: pte %p pa %p\n", i, pte, child);
+      if ((pte & (PTE_R|PTE_W|PTE_X)) == 0) {
+        // if has child
+        if (flag == 0)
+          printf("..%d: pte %p pa %p\n", i, pte, child);
+        else if (flag == 1)
+          printf(".. ..%d: pte %p pa %p\n", i, pte, child);
         printinfo((pagetable_t)child, 1);
-        break;
-      }
-      case 1: {
-        printf(".. ..%d: pte %p pa %p\n", i, pte, child);
-        printinfo((pagetable_t)child, 2);
-        break;
-      }  
-      case 2: {
+      } else {
         printf(".. .. ..%d: pte %p pa %p\n", i, pte, child);
-        printinfo((pagetable_t)child, 3);
-        break;
-      }  
-      case 3: 
-        break;
-      default:
-        break;
       }
     }
   }

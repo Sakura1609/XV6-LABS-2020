@@ -8,7 +8,7 @@
             "executable": "${workspaceRoot}/kernel/kernel",
             "gdbpath": "gdb-multiarch",
             "remote": true,            
-            "target": "127.0.0.1:25000",
+            "target": "127.0.0.1:26000",
             "cwd": "${workspaceRoot}",
             "setupCommands": {
                 "text": "source ${workspaceFolder}/.gdbinit"
