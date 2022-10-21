@@ -111,6 +111,8 @@ void test2() {
     if(i % 10 == 9)
       printf(".");
     if(free1 != free0) {
+      // printf("%d\n", i);
+      // printf("%d\n", free1);
       printf("test2 FAIL: losing pages\n");
       exit(-1);
     }
