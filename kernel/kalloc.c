@@ -87,7 +87,7 @@ void *
 kalloc(void)
 {
   struct run *r;
-  int flag = 0;
+  // int flag = 0;
   push_off();
   int id = cpuid();
   
@@ -104,8 +104,8 @@ kalloc(void)
       if (kmems[i].freelist) {
         r = kmems[i].freelist;
         kmems[i].freelist = kmems[i].freelist->next;
-        kmems[id].freelist = 0x0;
-        flag = 1;
+        // kmems[id].freelist = 0x0;
+        // flag = 1;
         release(&kmems[i].lock);
         break;
       }
@@ -115,7 +115,7 @@ kalloc(void)
   release(&kmems[id].lock);
   pop_off();
 
-  if(r || flag)
+  if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
 }
