@@ -182,7 +182,7 @@ int             copyinstr(pagetable_t, char *, uint64, uint64);
 int             test_pagetable();
 void            vmprint(pagetable_t);
 void            printinfo(pagetable_t, int);
-void            pkvminit(pagetable_t *);
+pagetable_t     pkvminit();
 void            pkvmmap(pagetable_t, uint64, uint64, uint64, int);
 
 // plic.c

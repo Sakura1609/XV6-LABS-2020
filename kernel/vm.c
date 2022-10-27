@@ -5,6 +5,9 @@
 #include "riscv.h"
 #include "defs.h"
 #include "fs.h"
+#include "spinlock.h"
+#include "proc.h"
+
 
 /*
  * the kernel's page table.
@@ -48,32 +51,33 @@ kvminit()
 }
 
 // create mapping for user page tables for each proc
-void 
-pkvminit(pagetable_t* pagetable)
+pagetable_t 
+pkvminit()
 { 
-  *pagetable = (pagetable_t)kalloc();
-  memset(*pagetable, 0, PGSIZE);
+  pagetable_t pagetable = (pagetable_t)kalloc();
+  memset(pagetable, 0, PGSIZE);
   // uart registers
-  pkvmmap(*pagetable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
+  pkvmmap(pagetable, UART0, UART0, PGSIZE, PTE_R | PTE_W);
 
   // virtio mmio disk interface
-  pkvmmap(*pagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
+  pkvmmap(pagetable, VIRTIO0, VIRTIO0, PGSIZE, PTE_R | PTE_W);
 
   // CLINT
-  pkvmmap(*pagetable, CLINT, CLINT, 0x10000, PTE_R | PTE_W);
+  // pkvmmap(pagetable, CLINT, CLINT, 0x10000, PTE_R | PTE_W);
 
   // PLIC
-  pkvmmap(*pagetable, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
+  pkvmmap(pagetable, PLIC, PLIC, 0x400000, PTE_R | PTE_W);
 
   // map kernel text executable and read-only.
-  pkvmmap(*pagetable, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
+  pkvmmap(pagetable, KERNBASE, KERNBASE, (uint64)etext-KERNBASE, PTE_R | PTE_X);
 
   // map kernel data and the physical RAM we'll make use of.
-  pkvmmap(*pagetable, (uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);
+  pkvmmap(pagetable, (uint64)etext, (uint64)etext, PHYSTOP-(uint64)etext, PTE_R | PTE_W);
 
   // map the trampoline for trap entry/exit to
   // the highest virtual address in the kernel.
-  pkvmmap(*pagetable, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+  pkvmmap(pagetable, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X);
+  return pagetable;
 }
 
 // Switch h/w page table register to the kernel's page table,
@@ -169,7 +173,7 @@ kvmpa(uint64 va)
   pte_t *pte;
   uint64 pa;
   
-  pte = walk(kernel_pagetable, va, 0);
+  pte = walk(myproc()->k_pagetable, va, 0);
   if(pte == 0)
     panic("kvmpa");
   if((*pte & PTE_V) == 0)
