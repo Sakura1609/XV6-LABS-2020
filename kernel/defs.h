@@ -108,7 +108,6 @@ void            yield(void);
 int             either_copyout(int user_dst, uint64 dst, void *src, uint64 len);
 int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
-void            kproc_freepagetable(pagetable_t);
 
 // swtch.S
 void            swtch(struct context*, struct context*);
@@ -161,13 +160,17 @@ int             uartgetc(void);
 // vm.c
 void            kvminit(void);
 void            kvminithart(void);
+pagetable_t     proc_kernel_pagetable(void);
 uint64          kvmpa(uint64);
 void            kvmmap(uint64, uint64, uint64, int);
+void            vmmap(pagetable_t pagetable, uint64 va, uint64 pa, uint64 sz, int perm);
 int             mappages(pagetable_t, uint64, uint64, uint64, int);
 pagetable_t     uvmcreate(void);
 void            uvminit(pagetable_t, uchar *, uint);
 uint64          uvmalloc(pagetable_t, uint64, uint64);
 uint64          uvmdealloc(pagetable_t, uint64, uint64);
+uint64          kvmdealloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz);
+void            proc_kpagetable_freewalk(pagetable_t pagetable);
 #ifdef SOL_COW
 #else
 int             uvmcopy(pagetable_t, pagetable_t, uint64);
@@ -175,15 +178,17 @@ int             uvmcopy(pagetable_t, pagetable_t, uint64);
 void            uvmfree(pagetable_t, uint64);
 void            uvmunmap(pagetable_t, uint64, uint64, int);
 void            uvmclear(pagetable_t, uint64);
+int             pagetable_copyin(pagetable_t, pagetable_t, uint64, uint64);
 uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
-int             test_pagetable();
-void            vmprint(pagetable_t);
 void            printinfo(pagetable_t, int);
-pagetable_t     pkvminit();
-void            pkvmmap(pagetable_t, uint64, uint64, uint64, int);
+void            vmprint(pagetable_t pagetable);
+
+// vmcopyin.c
+int             copyin_new(pagetable_t pagetable, char *dst, uint64 srcva, uint64 len);
+int             copyinstr_new(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max);
 
 // plic.c
 void            plicinit(void);
