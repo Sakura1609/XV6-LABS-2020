@@ -106,4 +106,5 @@ struct proc {
   int alarm_tisks;             // alarm time interval
   uint64 handler;              // alarm function
   int past_ticks;              // record alarm ticks passed 
+  struct trapframe *pretrapframe; // save trapframe before execute handler
 };
