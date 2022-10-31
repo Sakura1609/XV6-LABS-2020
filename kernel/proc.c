@@ -28,19 +28,8 @@ procinit(void)
   struct proc *p;
   
   initlock(&pid_lock, "nextpid");
-  for(p = proc; p < &proc[NPROC]; p++) {
+  for(p = proc; p < &proc[NPROC]; p++) 
       initlock(&p->lock, "proc");
-
-      // Allocate a page for the process's kernel stack.
-      // Map it high in memory, followed by an invalid
-      // guard page.
-      char *pa = kalloc();
-      if(pa == 0)
-        panic("kalloc");
-      uint64 va = KSTACK((int) (p - proc));
-      kvmmap(va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
-      p->kstack = va;
-  }
   kvminithart();
 }
 
@@ -121,6 +110,24 @@ found:
     return 0;
   }
 
+  // A new kernel pagetable same as xv6 kernel_pagetable.
+  p->k_pagetable = pkvminithart();
+  if(p->k_pagetable == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+
+  // Allocate a page for the process's kernel stack.
+  // Map it high in memory, followed by an invalid
+  // guard page.
+  char *pa = kalloc();
+  if(pa == 0)
+    panic("kalloc");
+  uint64 va = KSTACK((int) (p - proc));
+  pkvmmap(p->k_pagetable, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+  p->kstack = va;
+
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -142,6 +149,12 @@ freeproc(struct proc *p)
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
+  if(p->kstack)
+    uvmunmap(p->k_pagetable, p->kstack, 1, 1);
+  p->kstack = 0;
+  if(p->k_pagetable)
+    freewalk_kp(p->k_pagetable);
+  p->k_pagetable = 0;
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
@@ -221,6 +234,9 @@ userinit(void)
   uvminit(p->pagetable, initcode, sizeof(initcode));
   p->sz = PGSIZE;
 
+  // copy the user page table to kernel page table
+  pgtblcopy(p->pagetable, p->k_pagetable, 0, p->sz);
+
   // prepare for the very first "return" from kernel to user.
   p->trapframe->epc = 0;      // user program counter
   p->trapframe->sp = PGSIZE;  // user stack pointer
@@ -235,6 +251,7 @@ userinit(void)
 
 // Grow or shrink user memory by n bytes.
 // Return 0 on success, -1 on failure.
+// Add kernel page table mapping
 int
 growproc(int n)
 {
@@ -246,7 +263,10 @@ growproc(int n)
     if((sz = uvmalloc(p->pagetable, sz, sz + n)) == 0) {
       return -1;
     }
+    if(pgtblcopy(p->pagetable, p->k_pagetable, p->sz, sz) < 0)
+      return -1;
   } else if(n < 0){
+    pkvmdealloc(p->k_pagetable, sz, sz + n);
     sz = uvmdealloc(p->pagetable, sz, sz + n);
   }
   p->sz = sz;
@@ -292,6 +312,9 @@ fork(void)
   safestrcpy(np->name, p->name, sizeof(p->name));
 
   pid = np->pid;
+
+  // build mapping from upgtbl to proc's kpgtbl
+  pgtblcopy(np->pagetable, np->k_pagetable, 0, np->sz);
 
   np->state = RUNNABLE;
 
@@ -473,12 +496,18 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+        // Switch page table register to the process's kernel page table
+        // and flush TLB.
+        w_satp(MAKE_SATP(p->k_pagetable));
+        sfence_vma();
         swtch(&c->context, &p->context);
 
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0; // cpu dosen't run any process now
 
+        // init proc kernel pagetable
+        kvminithart();
         found = 1;
       }
       release(&p->lock);
