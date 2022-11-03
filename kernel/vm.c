@@ -142,24 +142,23 @@ walkcowaddr(pagetable_t pagetable, uint64 va)
     {
       return 0;
     }
-    // 分配新物理页
+    // alloc new memory page
     if ((mem = kalloc()) == 0)
     {
       return 0;
     }
-    // 拷贝页表内容
+    // copy old page
     memmove(mem, (void *)pa, PGSIZE);
-    // 更新标志位
     flags = (PTE_FLAGS(*pte) & (~PTE_COW)) | PTE_W;
-    // 取消原映射
+    // unmap old page avoiding remap
     uvmunmap(pagetable, PGROUNDDOWN(va), 1, 1);
-    // 更新新映射
+    // build new map at previous location
     if (mappages(pagetable, PGROUNDDOWN(va), PGSIZE, (uint64)mem, flags))
     {
       kfree(mem);
       return 0;
     }
-    return (uint64)mem; // COW情况下返回新物理地址
+    return (uint64)mem; // return new memory if cow occurs
   }
   return pa;
 }
@@ -394,11 +393,11 @@ int uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if ((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
     pa = PTE2PA(*pte);
-    // *pte &= ~PTE_W;
-    // *pte |= PTE_COW;
+    
     // a trail: change(concle) PTE_W here
     flags = (PTE_FLAGS(*pte) & (~PTE_W)) | PTE_COW;
-    *pte = PA2PTE(pa) | flags;
+    *pte &= ~PTE_W;
+    *pte |= PTE_COW;
     // uvmunmap(old, i, 1, 1);
     if (mappages(new, i, PGSIZE, pa, flags) != 0)
     {

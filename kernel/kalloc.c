@@ -35,7 +35,6 @@ void freerange(void *pa_start, void *pa_end)
 {
   char *p;
   p = (char *)PGROUNDUP((uint64)pa_start);
-  // printf("%p %p\n", KERNBASE, end);
   for (; p + PGSIZE <= (char *)pa_end; p += PGSIZE)
   {
     increase((uint64)p);
@@ -56,9 +55,7 @@ void kfree(void *pa)
 
   // decrease implements
   if (decrease((uint64)pa))
-  {
     return;
-  }
 
   // if implement is none then
   // Fill with junk to catch dangling refs.

@@ -33,17 +33,3 @@ uint decrease(uint64 pa)
     release(&imple[pa].lock);
     return ret;
 }
-
-// uint decrease(uint64 pa)
-// {
-//     uint ret;
-//     if (pa < KERNBASE)
-//     {
-//         return 0;
-//     }
-//     pa = (pa - KERNBASE) >> 12;
-//     acquire(&imple[pa].lock);
-//     --imple[pa].overpages;
-//     release(&imple[pa].lock);
-//     return imple[pa].overpages;
-// }
